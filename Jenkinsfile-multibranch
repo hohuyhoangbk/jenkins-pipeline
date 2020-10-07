@@ -1,0 +1,70 @@
+pipeline {
+    
+        agent {
+            node {
+                label 'master'
+            }
+        }
+        environment {
+            RAILS_ENV = 'test'
+            TEST_ENV_NUMBER = """${sh(
+                    returnStdout: true, 
+                    script: "cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1"
+                  )}""";
+        }
+        options {
+            buildDiscarder logRotator( 
+                        daysToKeepStr: '30', 
+                        numToKeepStr: '5'
+                )
+        }
+    
+        stages {
+            
+            stage('Build') {
+                steps {
+                    echo 'Rails env is ' + RAILS_ENV
+                    echo 'Test env number is ' + TEST_ENV_NUMBER
+                    sh """
+                    echo "Installing prerequisites"
+                    /var/lib/jenkins/checkdb.sh $TEST_ENV_NUMBER
+                    bundle install
+                    yarn install --check-files
+                    bundle exec rake assets:precompile
+                    bundle exec rake db:migrate
+                    """
+                }
+            }
+            stage('Unit Testing') {
+
+                steps {
+                    sh """
+                    echo "Running Unit Tests"
+                    bundle exec rspec spec
+                    """
+                }
+            }
+    
+            stage('Code Analysis') {
+                steps {
+                    sh """
+                    echo "Running Code Analysis"
+                    """
+                }
+            }
+    
+            stage('Deploy Code') {
+
+                steps {
+                    sh """
+                    echo "Building Artifact"
+                    """
+    
+                    sh """
+                    echo "Deploying Code"
+                    """
+                }
+            }
+    
+        }   
+    }
