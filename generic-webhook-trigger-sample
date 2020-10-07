@@ -50,8 +50,8 @@ pipeline {
                         println("disk_size = ${disk_size}")*/
                         
                         git branch: branch_name,
-                            credentialsId: 'itviec_github_key',
-                            url: 'https://github.com/hohuyhoangbk/itviec'   
+                            credentialsId: '******_github_key',
+                            url: 'https://github.com/hohuyhoangbk/******'   
                     
                     }
                     
