@@ -1,0 +1,111 @@
+pipeline {
+    
+        agent {
+            node {
+                label 'master'
+            }
+        }
+        environment {
+            branch_name = """${sh(
+                    returnStdout: true, 
+                    script: "echo $myParameter | cut -d'/' -f3-"
+                  )}"""
+            TEST_ENV_NUMBER = "_${branch_name}"
+            RAILS_ENV = 'test'
+            //RAILS_ENV = 'test';
+            //TEST_ENV_NUMBER = '_develop';
+        }
+        options {
+            buildDiscarder logRotator( 
+                        daysToKeepStr: '14', 
+                        numToKeepStr: '10'
+                )
+        }
+    
+        stages {
+            stage('Validate branch') {
+              steps {
+                echo "Checking 1st the branch ${branch_name}"
+                script {
+                    if(branch_name == ''){
+                        currentBuild.result = 'FAILURE'
+                        error "Invalid branch name, end of pipeline"
+                    }
+                }
+                
+                /*script {
+                  ACTIVE = sh(
+                    returnStdout: true, 
+                    script: "echo $myParameter | cut -d'/' -f3-"
+                  ).trim()      
+                }*/                           
+              }
+            
+            }
+            stage('Checkout') {
+                steps {
+                    script {
+                        /*branch_name = env.myParameter;
+                        def disk_size = sh(script: "df / --output=avail | tail -1", returnStdout: true).trim() as Integer
+                        println("disk_size = ${disk_size}")*/
+                        
+                        git branch: branch_name,
+                            credentialsId: 'itviec_github_key',
+                            url: 'https://github.com/hohuyhoangbk/itviec'   
+                    
+                    }
+                    
+                }
+            }
+            stage('Install') {
+                steps {
+                    echo 'Rails env is ' + RAILS_ENV
+                    echo 'Test env number is ' + TEST_ENV_NUMBER
+                    sh """
+                    echo "Installing prerequisites"
+                    /var/lib/jenkins/checkdb.sh $TEST_ENV_NUMBER
+                    bundle install
+                    yarn install --check-files
+                    bundle exec rake assets:precompile
+                    bundle exec rake db:migrate
+                    """
+                }
+            }
+            stage('Unit Testing') {
+                /*environment {
+                    TEST_ENV_NUMBER = "_${branch_name}"
+                    RAILS_ENV = 'test'
+                }*/
+                steps {
+                    sh """
+                    echo "Running Unit Tests"
+                    bundle exec rspec spec
+                    """
+                }
+            }
+    
+            stage('Code Analysis') {
+                steps {
+                    sh """
+                    echo "Running Code Analysis"
+                    """
+                }
+            }
+    
+            stage('Deploy Code') {
+                when {
+                    branch 'develop'
+                }
+                steps {
+                    sh """
+                    echo "Building Artifact"
+                    """
+    
+                    sh """
+                    echo "Deploying Code"
+                    """
+                }
+            }
+    
+        }   
+    }
