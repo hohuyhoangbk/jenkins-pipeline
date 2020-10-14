@@ -1,6 +1,6 @@
 #!/bin/bash
 #echo $1
-database_name="ITViec_test$1"
+database_name="Iiec_test$1"
 echo $database_name
 #sudo su - postgres -c "psql -lqt | cut -d \| -f 1|grep -qw ${database_name}"
 if sudo su - postgres -c "psql -lqt | cut -d \| -f 1|grep -qw ${database_name}"; then
